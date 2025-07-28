@@ -11,5 +11,4 @@ WriteMakefile(
     # Let MakeMaker know where our tests live.  Any .t files in the
     # t/ directory will be executed when you run 'make test'.  This
     # overrides the default wildcard if you need a custom pattern.
-    TESTS       => 't/*.t',
 );

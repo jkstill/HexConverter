@@ -18,7 +18,6 @@
 #     LIBS => [q[]]
 #     NAME => q[Oracle::XS::HexConverter]
 #     PREREQ_PM => {  }
-#     TESTS => q[t/*.t]
 #     TEST_REQUIRES => {  }
 #     VERSION_FROM => q[Oracle/XS/HexConverter.pm]
 

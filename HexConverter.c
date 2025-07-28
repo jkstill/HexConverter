@@ -30,26 +30,28 @@ static int hex_lookup_initialised = 0;
 
 /*
  * Determine at runtime whether the current CPU supports the SSSE3
- * instruction set.  On GCC/Clang platforms we call the built‑in
- * routine to query the CPU.  If no support is detected or the
- * compiler does not provide a built‑in, the function returns 0.
+ * instruction set.  These builtins query CPUID without needing
+ * special privileges.  When unavailable (non‑gcc/clang compilers),
+ * assume false.
  */
 static int
 cpu_has_ssse3(void)
 {
 #if defined(__GNUC__) || defined(__clang__)
-    /* __builtin_cpu_init() and __builtin_cpu_supports() are GNU
-     * builtins; they will query the processor’s CPUID instruction
-     * without requiring special privileges.  See the GCC docs for
-     * details.  */
     __builtin_cpu_init();
     return __builtin_cpu_supports("ssse3");
 #else
-    /* No detection available; assume SSSE3 is absent. */
     return 0;
 #endif
 }
 
+/*
+ * Initialise the global lookup table mapping ASCII characters
+ * '0'–'9', 'A'–'F' and 'a'–'f' to their numeric nibble values.  All
+ * other values map to 0xFF to indicate invalid input.  This table
+ * only needs to be initialised once and is invoked from BOOT:
+ * during module loading.
+ */
 static void
 init_hex_lookup_table(void)
 {
@@ -64,14 +66,26 @@ init_hex_lookup_table(void)
     hex_lookup_initialised = 1;
 }
 
+/*
+ * Convert a buffer of ASCII hex characters into its binary form.
+ * The length n must be even.  binary_out must have at least n/2
+ * bytes of space.  Returns 0 on success or -1 on error.  If an
+ * invalid character is found, err_msg will point at a static
+ * message; this pointer is never freed.
+ */
 static int
 hex_to_binary_ssse3(const unsigned char *hex_data, size_t n,
                     unsigned char *binary_out, char **err_msg)
 {
     size_t i;
     for (i = 0; i + 32 <= n; i += 32) {
+        /* Load 32 input bytes into two 128‑bit registers */
         __m128i block1 = _mm_loadu_si128((const __m128i *)(hex_data + i));
         __m128i block2 = _mm_loadu_si128((const __m128i *)(hex_data + i + 16));
+
+        /* Shuffle masks to extract even and odd indices.  The upper
+         * bytes are masked out with 0x80 so that they do not
+         * contribute to the result.  */
         __m128i idxEven = _mm_setr_epi8(
             0,  2,  4,  6,  8, 10, 12, 14,
             (char)0x80,(char)0x80,(char)0x80,(char)0x80,
@@ -82,19 +96,31 @@ hex_to_binary_ssse3(const unsigned char *hex_data, size_t n,
             (char)0x80,(char)0x80,(char)0x80,(char)0x80,
             (char)0x80,(char)0x80,(char)0x80,(char)0x80
         );
+
+        /* Extract the even and odd characters from both registers */
         __m128i evens_block1 = _mm_shuffle_epi8(block1, idxEven);
         __m128i odds_block1  = _mm_shuffle_epi8(block1, idxOdd);
         __m128i evens_block2 = _mm_shuffle_epi8(block2, idxEven);
         __m128i odds_block2  = _mm_shuffle_epi8(block2, idxOdd);
+
+        /* Combine even and odd halves; block2 values are shifted
+         * upwards so that each register contains 16 bytes of data. */
         __m128i evens = _mm_or_si128(evens_block1,
                                      _mm_slli_si128(evens_block2, 8));
         __m128i odds  = _mm_or_si128(odds_block1,
                                      _mm_slli_si128(odds_block2,  8));
+
+        /* Convert ASCII codes to nibble values.  Start by
+         * subtracting '0' from each byte; later we adjust A–F and
+         * a–f ranges.  */
         __m128i zero = _mm_set1_epi8('0');
         evens = _mm_sub_epi8(evens, zero);
         odds  = _mm_sub_epi8(odds,  zero);
         __m128i chars_evens = _mm_add_epi8(evens, zero);
         __m128i chars_odds  = _mm_add_epi8(odds,  zero);
+
+        /* Create masks to identify uppercase and lowercase letters
+         * within the ranges A–F and a–f.  */
         __m128i upperA = _mm_set1_epi8('A' - 1);
         __m128i upperF = _mm_set1_epi8('F' + 1);
         __m128i lowerA = _mm_set1_epi8('a' - 1);
@@ -107,6 +133,9 @@ hex_to_binary_ssse3(const unsigned char *hex_data, size_t n,
                                              _mm_cmplt_epi8(chars_odds,  upperF));
         __m128i lcase_mask_o = _mm_and_si128(_mm_cmpgt_epi8(chars_odds,  lowerA),
                                              _mm_cmplt_epi8(chars_odds,  lowerF));
+
+        /* Adjust uppercase letters by subtracting 7 and lowercase by
+         * subtracting 39.  */
         evens = _mm_sub_epi8(evens,
                              _mm_and_si128(ucase_mask_e,
                                            _mm_set1_epi8(7)));
@@ -119,10 +148,17 @@ hex_to_binary_ssse3(const unsigned char *hex_data, size_t n,
         odds  = _mm_sub_epi8(odds,
                              _mm_and_si128(lcase_mask_o,
                                            _mm_set1_epi8(39)));
+
+        /* Merge the high and low nibbles into a single byte */
         __m128i high_shifted = _mm_slli_epi16(evens, 4);
         __m128i bytes = _mm_or_si128(high_shifted, odds);
+
+        /* Store the 16 decoded bytes */
         _mm_storeu_si128((__m128i *)(binary_out + i/2), bytes);
     }
+
+    /* Process any remaining characters (less than 32) with the
+     * lookup table.  */
     for (; i < n; i += 2) {
         unsigned char high = hex_lookup[hex_data[i]];
         unsigned char low  = hex_lookup[hex_data[i + 1]];
@@ -137,7 +173,7 @@ hex_to_binary_ssse3(const unsigned char *hex_data, size_t n,
     return 0;
 }
 
-#line 141 "HexConverter.c"
+#line 177 "HexConverter.c"
 #ifndef PERL_UNUSED_VAR
 #  define PERL_UNUSED_VAR(var) if (0) var = var
 #endif
@@ -281,7 +317,7 @@ S_croak_xs_usage(const CV *const cv, const char *const params)
 #  define newXS_deffile(a,b) Perl_newXS_deffile(aTHX_ a,b)
 #endif
 
-#line 285 "HexConverter.c"
+#line 321 "HexConverter.c"
 
 XS_EUPXS(XS_Oracle__XS__HexConverter_hex_to_binary); /* prototype to pass -Wmissing-prototypes */
 XS_EUPXS(XS_Oracle__XS__HexConverter_hex_to_binary)
@@ -292,7 +328,7 @@ XS_EUPXS(XS_Oracle__XS__HexConverter_hex_to_binary)
     PERL_UNUSED_VAR(ax); /* -Wall */
     SP -= items;
     {
-#line 141 "HexConverter.xs"
+#line 178 "HexConverter.xs"
         SV    *sv_hex;
         STRLEN hex_len;
         unsigned char *hex_str;
@@ -301,24 +337,36 @@ XS_EUPXS(XS_Oracle__XS__HexConverter_hex_to_binary)
         int    rc;
         size_t i;
         int    has_ssse3;
-#line 305 "HexConverter.c"
+#line 341 "HexConverter.c"
 	SV *	RETVAL;
 	SV*	hex_ref = ST(0)
 ;
-#line 150 "HexConverter.xs"
+#line 187 "HexConverter.xs"
+        /* Validate that the argument is a reference to a scalar */
         if (!SvROK(hex_ref)) {
             croak("Argument must be a reference to a scalar containing a hex string");
         }
         sv_hex = SvRV(hex_ref);
+        /* Trigger FETCH on tied values, if necessary */
         SvGETMAGIC(sv_hex);
+        /* If the string is UTF‑8, downgrade it to a byte string.  See perlguts
+         * for more details on SvUTF8 and sv_utf8_downgrade()【817665102442637†L378-L404】.
+         */
         if (SvUTF8(sv_hex) && !sv_utf8_downgrade(sv_hex, TRUE)) {
             croak("Input string must contain only ASCII characters and be downgradeable");
         }
+        /* Retrieve the raw bytes and length from the SV.  Use SvPVbyte() to
+         * obtain a pointer to the internal buffer and its length.  This macro
+         * returns the byte string regardless of the UTF‑8 flag and stores
+         * the length in hex_len【817665102442637†L378-L404】.
+         */
         hex_str = (unsigned char *)SvPVbyte(sv_hex, hex_len);
         if (hex_len == 0) {
+            /* An empty input yields an empty output */
             XPUSHs(sv_2mortal(newSVpvs("")));
             XSRETURN(1);
         }
+        /* Ensure the input string has an even number of characters */
         if ((hex_len & 1) != 0) {
             croak("Hex string length must be even");
         }
@@ -326,92 +374,131 @@ XS_EUPXS(XS_Oracle__XS__HexConverter_hex_to_binary)
         if (!binary_out) {
             croak("Memory allocation failed");
         }
-        /* Perform the conversion.  Use SIMD loops if the CPU supports
-         * SSSE3; otherwise fall back to the scalar conversion. */
         has_ssse3 = cpu_has_ssse3();
         if (has_ssse3) {
-            /* Process 32‑character blocks with SSSE3, storing 16 bytes
-             * at a time into the output.  The loop structure mirrors
-             * the original OCI implementation. */
-            for (i = 0; i + 32 <= hex_len; i += 32) {
-                __m128i block1 = _mm_loadu_si128((const __m128i *)(hex_str + i));
-                __m128i block2 = _mm_loadu_si128((const __m128i *)(hex_str + i + 16));
-                __m128i idxEven = _mm_setr_epi8(
-                    0,  2,  4,  6,  8, 10, 12, 14,
-                    (char)0x80,(char)0x80,(char)0x80,(char)0x80,
-                    (char)0x80,(char)0x80,(char)0x80,(char)0x80
-                );
-                __m128i idxOdd = _mm_setr_epi8(
-                    1,  3,  5,  7,  9, 11, 13, 15,
-                    (char)0x80,(char)0x80,(char)0x80,(char)0x80,
-                    (char)0x80,(char)0x80,(char)0x80,(char)0x80
-                );
-                __m128i evens_block1 = _mm_shuffle_epi8(block1, idxEven);
-                __m128i odds_block1  = _mm_shuffle_epi8(block1, idxOdd);
-                __m128i evens_block2 = _mm_shuffle_epi8(block2, idxEven);
-                __m128i odds_block2  = _mm_shuffle_epi8(block2, idxOdd);
-                __m128i evens = _mm_or_si128(evens_block1,
-                                             _mm_slli_si128(evens_block2, 8));
-                __m128i odds  = _mm_or_si128(odds_block1,
-                                             _mm_slli_si128(odds_block2,  8));
-                __m128i zero = _mm_set1_epi8('0');
-                evens = _mm_sub_epi8(evens, zero);
-                odds  = _mm_sub_epi8(odds,  zero);
-                __m128i chars_evens = _mm_add_epi8(evens, zero);
-                __m128i chars_odds  = _mm_add_epi8(odds,  zero);
-                __m128i upperA = _mm_set1_epi8('A' - 1);
-                __m128i upperF = _mm_set1_epi8('F' + 1);
-                __m128i lowerA = _mm_set1_epi8('a' - 1);
-                __m128i lowerF = _mm_set1_epi8('f' + 1);
-                __m128i ucase_mask_e = _mm_and_si128(_mm_cmpgt_epi8(chars_evens, upperA),
-                                                     _mm_cmplt_epi8(chars_evens, upperF));
-                __m128i lcase_mask_e = _mm_and_si128(_mm_cmpgt_epi8(chars_evens, lowerA),
-                                                     _mm_cmplt_epi8(chars_evens, lowerF));
-                __m128i ucase_mask_o = _mm_and_si128(_mm_cmpgt_epi8(chars_odds,  upperA),
-                                                     _mm_cmplt_epi8(chars_odds,  upperF));
-                __m128i lcase_mask_o = _mm_and_si128(_mm_cmpgt_epi8(chars_odds,  lowerA),
-                                                     _mm_cmplt_epi8(chars_odds,  lowerF));
-                evens = _mm_sub_epi8(evens,
-                                     _mm_and_si128(ucase_mask_e,
-                                                   _mm_set1_epi8(7)));
-                odds  = _mm_sub_epi8(odds,
-                                     _mm_and_si128(ucase_mask_o,
-                                                   _mm_set1_epi8(7)));
-                evens = _mm_sub_epi8(evens,
-                                     _mm_and_si128(lcase_mask_e,
-                                                   _mm_set1_epi8(39)));
-                odds  = _mm_sub_epi8(odds,
-                                     _mm_and_si128(lcase_mask_o,
-                                                   _mm_set1_epi8(39)));
-                __m128i high_shifted = _mm_slli_epi16(evens, 4);
-                __m128i bytes = _mm_or_si128(high_shifted, odds);
-                _mm_storeu_si128((__m128i *)(binary_out + i/2), bytes);
+            /* Use SSSE3 helper; if it returns non‑zero we croak */
+            rc = hex_to_binary_ssse3(hex_str, (size_t)hex_len, binary_out, &err_msg);
+            if (rc != 0) {
+                free(binary_out);
+                croak("%s", err_msg);
             }
         } else {
-            /* No SSSE3 available; inform the caller and process
-             * everything using the scalar loop below.  warn() issues
-             * a Perl warning in the current context【167681740292278†L1899-L1907】. */
+            /* Fallback: issue warning and process bytes using lookup table */
             warn("Oracle::XS::HexConverter: SSSE3 not supported, falling back to scalar implementation\n");
-            i = 0; /* start conversion at the beginning */
-        }
-        /* Convert any remaining bytes (or the entire buffer if no SSSE3)
-         * using the lookup table.  */
-        for (; i < hex_len; i += 2) {
-            unsigned char high = hex_lookup[hex_str[i]];
-            unsigned char low  = hex_lookup[hex_str[i + 1]];
-            if (high == 0xFF || low == 0xFF) {
-                free(binary_out);
-                croak("Invalid hex digit");
+            for (i = 0; i < (size_t)hex_len; i += 2) {
+                unsigned char high = hex_lookup[hex_str[i]];
+                unsigned char low  = hex_lookup[hex_str[i + 1]];
+                if (high == 0xFF || low == 0xFF) {
+                    free(binary_out);
+                    croak("Invalid hex digit");
+                }
+                binary_out[i / 2] = (high << 4) | low;
             }
-            binary_out[i / 2] = (high << 4) | low;
         }
         {
+            /* Create a new Perl scalar from the binary buffer.  Use
+             * newSVpvn() to specify the length so that NUL bytes are preserved【762007431098504†L165-L190】. */
             SV *result = newSVpvn((const char *)binary_out, hex_len/2);
             free(binary_out);
             XPUSHs(sv_2mortal(result));
             XSRETURN(1);
         }
-#line 415 "HexConverter.c"
+#line 407 "HexConverter.c"
+	PUTBACK;
+	return;
+    }
+}
+
+
+XS_EUPXS(XS_Oracle__XS__HexConverter_binary_to_hex); /* prototype to pass -Wmissing-prototypes */
+XS_EUPXS(XS_Oracle__XS__HexConverter_binary_to_hex)
+{
+    dVAR; dXSARGS;
+    if (items != 1)
+       croak_xs_usage(cv,  "bin_ref");
+    PERL_UNUSED_VAR(ax); /* -Wall */
+    SP -= items;
+    {
+#line 252 "HexConverter.xs"
+        SV    *sv_bin;
+        STRLEN bin_len;
+        unsigned char *bin_str;
+        unsigned char *hex_out;
+        size_t i;
+        int    has_ssse3;
+#line 430 "HexConverter.c"
+	SV *	RETVAL;
+	SV*	bin_ref = ST(0)
+;
+#line 259 "HexConverter.xs"
+        /* Validate argument: must be a reference to a scalar */
+        if (!SvROK(bin_ref)) {
+            croak("Argument must be a reference to a scalar containing binary data");
+        }
+        sv_bin = SvRV(bin_ref);
+        SvGETMAGIC(sv_bin);
+        /* Ensure a bytestring, not UTF‑8 */
+        if (SvUTF8(sv_bin) && !sv_utf8_downgrade(sv_bin, TRUE)) {
+            croak("Binary data must be a bytestring");
+        }
+        bin_str = (unsigned char *)SvPVbyte(sv_bin, bin_len);
+        if (bin_len == 0) {
+            XPUSHs(sv_2mortal(newSVpvs("")));
+            XSRETURN(1);
+        }
+        /* Allocate output: two hex characters per byte */
+        hex_out = (unsigned char *)malloc(bin_len * 2);
+        if (!hex_out) {
+            croak("Memory allocation failed");
+        }
+        has_ssse3 = cpu_has_ssse3();
+        if (has_ssse3) {
+            /* SIMD: process 16 bytes at a time */
+            __m128i mask0f = _mm_set1_epi8(0x0F);
+            __m128i nine   = _mm_set1_epi8(9);
+            __m128i ascii_zero    = _mm_set1_epi8('0');
+            __m128i ascii_Aminus10 = _mm_set1_epi8('A' - 10);
+            for (i = 0; i + 16 <= (size_t)bin_len; i += 16) {
+                __m128i bytes = _mm_loadu_si128((const __m128i *)(bin_str + i));
+                __m128i high_nibble = _mm_and_si128(_mm_srli_epi16(bytes, 4), mask0f);
+                __m128i low_nibble  = _mm_and_si128(bytes, mask0f);
+                __m128i gt9_hi = _mm_cmpgt_epi8(high_nibble, nine);
+                __m128i base_hi = _mm_or_si128(
+                    _mm_andnot_si128(gt9_hi, ascii_zero),
+                    _mm_and_si128(gt9_hi, ascii_Aminus10)
+                );
+                __m128i ascii_hi = _mm_add_epi8(high_nibble, base_hi);
+                __m128i gt9_lo = _mm_cmpgt_epi8(low_nibble, nine);
+                __m128i base_lo = _mm_or_si128(
+                    _mm_andnot_si128(gt9_lo, ascii_zero),
+                    _mm_and_si128(gt9_lo, ascii_Aminus10)
+                );
+                __m128i ascii_lo = _mm_add_epi8(low_nibble, base_lo);
+                __m128i interleaved_lo = _mm_unpacklo_epi8(ascii_hi, ascii_lo);
+                __m128i interleaved_hi = _mm_unpackhi_epi8(ascii_hi, ascii_lo);
+                _mm_storeu_si128((__m128i *)(hex_out + (i * 2)),      interleaved_lo);
+                _mm_storeu_si128((__m128i *)(hex_out + (i * 2) + 16), interleaved_hi);
+            }
+        } else {
+            /* Scalar fallback: warn user */
+            warn("Oracle::XS::HexConverter: SSSE3 not supported, falling back to scalar implementation\n");
+            i = 0;
+        }
+        /* Scalar loop for remainder or entire input */
+        for (; i < (size_t)bin_len; i++) {
+            unsigned char b = bin_str[i];
+            unsigned char high = (unsigned char)(b >> 4);
+            unsigned char low  = (unsigned char)(b & 0x0F);
+            hex_out[2 * i]     = (char)((high < 10) ? (high + '0') : (high + 'A' - 10));
+            hex_out[2 * i + 1] = (char)((low  < 10) ? (low  + '0') : (low  + 'A' - 10));
+        }
+        {
+            SV *result = newSVpvn((const char *)hex_out, bin_len * 2);
+            free(hex_out);
+            XPUSHs(sv_2mortal(result));
+            XSRETURN(1);
+        }
+#line 502 "HexConverter.c"
 	PUTBACK;
 	return;
     }
@@ -446,15 +533,17 @@ XS_EXTERNAL(boot_Oracle__XS__HexConverter)
 #endif
 
         newXS_deffile("Oracle::XS::HexConverter::hex_to_binary", XS_Oracle__XS__HexConverter_hex_to_binary);
+        newXS_deffile("Oracle::XS::HexConverter::binary_to_hex", XS_Oracle__XS__HexConverter_binary_to_hex);
 
     /* Initialisation Section */
 
-#line 134 "HexConverter.xs"
+#line 170 "HexConverter.xs"
+    /* Ensure the lookup table is ready when the module is loaded */
     if (!hex_lookup_initialised) {
         init_hex_lookup_table();
     }
 
-#line 458 "HexConverter.c"
+#line 547 "HexConverter.c"
 
     /* End of Initialisation Section */
 
