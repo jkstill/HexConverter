@@ -3,6 +3,4 @@
 ./Makefile.PL
 ./t/binary_to_hex.t
 ./t/hex_to_binary.t
-./Data-HexConverter-0.01/META.yml
-./Data-HexConverter-0.01/META.json
 ./MANIFEST

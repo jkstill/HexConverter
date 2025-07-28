@@ -164,7 +164,7 @@ hex_to_binary_ssse3(const unsigned char *hex_data, size_t n,
     return 0;
 }
 
-MODULE = Oracle::XS::HexConverter   PACKAGE = Oracle::XS::HexConverter
+MODULE = Data::HexConverter   PACKAGE = Data::HexConverter
 
 BOOT:
     /* Ensure the lookup table is ready when the module is loaded */
@@ -226,7 +226,7 @@ hex_to_binary(SV* hex_ref)
             }
         } else {
             /* Fallback: issue warning and process bytes using lookup table */
-            warn("Oracle::XS::HexConverter: SSSE3 not supported, falling back to scalar implementation\n");
+            warn("Data::HexConverter: SSSE3 not supported, falling back to scalar implementation\n");
             for (i = 0; i < (size_t)hex_len; i += 2) {
                 unsigned char high = hex_lookup[hex_str[i]];
                 unsigned char low  = hex_lookup[hex_str[i + 1]];
@@ -306,7 +306,7 @@ binary_to_hex(SV* bin_ref)
             }
         } else {
             /* Scalar fallback: warn user */
-            warn("Oracle::XS::HexConverter: SSSE3 not supported, falling back to scalar implementation\n");
+            warn("Data::HexConverter: SSSE3 not supported, falling back to scalar implementation\n");
             i = 0;
         }
         /* Scalar loop for remainder or entire input */
