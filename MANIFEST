@@ -1,6 +1,19 @@
-./Data/HexConverter.pm
-./HexConverter.xs
-./Makefile.PL
-./t/binary_to_hex.t
-./t/hex_to_binary.t
-./MANIFEST
+Changes
+Data/HexConverter.pm
+HexConverter.xs
+ignore.txt
+lib/Data/HexConverter.pm
+Makefile.PL
+MANIFEST			This list of files
+README
+t.orig/00-load.t
+t.orig/manifest.t
+t.orig/pod-coverage.t
+t.orig/pod.t
+t/00-load.t
+t/binary_to_hex.t
+t/hex_to_binary.t
+t/manifest.t
+t/pod-coverage.t
+t/pod.t
+xt/boilerplate.t
