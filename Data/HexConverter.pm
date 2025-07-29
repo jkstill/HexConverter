@@ -2,12 +2,16 @@ package Data::HexConverter;
 
 use strict;
 use warnings;
+use Exporter qw(import);
 
 our $VERSION = '0.01';
-our @EXPORT_OK = qw(hex_to_binary binary_to_hex);
 
 use XSLoader;
 XSLoader::load(__PACKAGE__, $VERSION);
+
+our @ISA = qw(Exporter);
+our @EXPORT_OK = qw(hex_to_binary binary_to_hex);
+our @EXPORT = ();
 
 1;
 
