@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Exporter qw(import);
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use XSLoader;
 XSLoader::load(__PACKAGE__, $VERSION);
@@ -46,6 +46,13 @@ uppercase hexadecimal representation.  It uses SSSE3 vector
 instructions to expand 16 bytes at a time but will fall back to a
 scalar implementation and emit a warning if SSSE3 is not available.
 
+=head1 VERSION
+
+Version 0.02
+
+=cut
+
+
 =head1 FUNCTIONS
 
 =head2 hex_to_binary
@@ -74,5 +81,15 @@ exception is thrown if the argument is not a reference to a scalar.
 Jared Still
 
 Assisted by ChatGPT.
+
+=head1 LICENSE AND COPYRIGHT
+
+This software is Copyright (c) 2025 by Jared Still.
+
+This is free software, licensed under:
+
+  MIT License
+
+=cut
 
 =cut

@@ -22,7 +22,7 @@ my %WriteMakefileArgs = (
         #'Foo::Bar::Module' => '5.0401',
     },
     PM => {
-        'Data/HexConverter.pm' => '$(INST_LIB)/Data/HexConverter.pm',
+        'lib/Data/HexConverter.pm' => '$(INST_LIB)/Data/HexConverter.pm',
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'Data-HexConverter-*' },
