@@ -61,7 +61,7 @@ string cannot be downgraded or if it contains invalid characters.
 Converts a binary string referenced by the argument into its uppercase
 hexadecimal representation and returns it as a Perl scalar.  Each
 input byte becomes two hex characters.  The input scalar is
-downgraded from UTF‑8 if necessary.  A warning is issued and a
+downgraded from UTF-8 if necessary.  A warning is issued and a
 scalar implementation is used if the CPU lacks SSSE3 support.  An
 exception is thrown if the argument is not a reference to a scalar.
 
