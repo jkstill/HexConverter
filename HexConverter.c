@@ -319,8 +319,8 @@ S_croak_xs_usage(const CV *const cv, const char *const params)
 
 #line 321 "HexConverter.c"
 
-XS_EUPXS(XS_Oracle__XS__HexConverter_hex_to_binary); /* prototype to pass -Wmissing-prototypes */
-XS_EUPXS(XS_Oracle__XS__HexConverter_hex_to_binary)
+XS_EUPXS(XS_Data__HexConverter_hex_to_binary); /* prototype to pass -Wmissing-prototypes */
+XS_EUPXS(XS_Data__HexConverter_hex_to_binary)
 {
     dVAR; dXSARGS;
     if (items != 1)
@@ -384,7 +384,7 @@ XS_EUPXS(XS_Oracle__XS__HexConverter_hex_to_binary)
             }
         } else {
             /* Fallback: issue warning and process bytes using lookup table */
-            warn("Oracle::XS::HexConverter: SSSE3 not supported, falling back to scalar implementation\n");
+            warn("Data::HexConverter: SSSE3 not supported, falling back to scalar implementation\n");
             for (i = 0; i < (size_t)hex_len; i += 2) {
                 unsigned char high = hex_lookup[hex_str[i]];
                 unsigned char low  = hex_lookup[hex_str[i + 1]];
@@ -410,8 +410,8 @@ XS_EUPXS(XS_Oracle__XS__HexConverter_hex_to_binary)
 }
 
 
-XS_EUPXS(XS_Oracle__XS__HexConverter_binary_to_hex); /* prototype to pass -Wmissing-prototypes */
-XS_EUPXS(XS_Oracle__XS__HexConverter_binary_to_hex)
+XS_EUPXS(XS_Data__HexConverter_binary_to_hex); /* prototype to pass -Wmissing-prototypes */
+XS_EUPXS(XS_Data__HexConverter_binary_to_hex)
 {
     dVAR; dXSARGS;
     if (items != 1)
@@ -481,7 +481,7 @@ XS_EUPXS(XS_Oracle__XS__HexConverter_binary_to_hex)
             }
         } else {
             /* Scalar fallback: warn user */
-            warn("Oracle::XS::HexConverter: SSSE3 not supported, falling back to scalar implementation\n");
+            warn("Data::HexConverter: SSSE3 not supported, falling back to scalar implementation\n");
             i = 0;
         }
         /* Scalar loop for remainder or entire input */
@@ -507,8 +507,8 @@ XS_EUPXS(XS_Oracle__XS__HexConverter_binary_to_hex)
 #ifdef __cplusplus
 extern "C" {
 #endif
-XS_EXTERNAL(boot_Oracle__XS__HexConverter); /* prototype to pass -Wmissing-prototypes */
-XS_EXTERNAL(boot_Oracle__XS__HexConverter)
+XS_EXTERNAL(boot_Data__HexConverter); /* prototype to pass -Wmissing-prototypes */
+XS_EXTERNAL(boot_Data__HexConverter)
 {
 #if PERL_VERSION_LE(5, 21, 5)
     dVAR; dXSARGS;
@@ -532,8 +532,8 @@ XS_EXTERNAL(boot_Oracle__XS__HexConverter)
 #  endif
 #endif
 
-        newXS_deffile("Oracle::XS::HexConverter::hex_to_binary", XS_Oracle__XS__HexConverter_hex_to_binary);
-        newXS_deffile("Oracle::XS::HexConverter::binary_to_hex", XS_Oracle__XS__HexConverter_binary_to_hex);
+        newXS_deffile("Data::HexConverter::hex_to_binary", XS_Data__HexConverter_hex_to_binary);
+        newXS_deffile("Data::HexConverter::binary_to_hex", XS_Data__HexConverter_binary_to_hex);
 
     /* Initialisation Section */
 

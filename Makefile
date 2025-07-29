@@ -1,4 +1,4 @@
-# This Makefile is for the Oracle::XS::HexConverter extension to perl.
+# This Makefile is for the Data::HexConverter extension to perl.
 #
 # It was generated automatically by MakeMaker version
 # 7.70 (Revision: 77000) from the contents of
@@ -16,10 +16,10 @@
 #     DEFINE => q[-mssse3]
 #     INC => q[]
 #     LIBS => [q[]]
-#     NAME => q[Oracle::XS::HexConverter]
+#     NAME => q[Data::HexConverter]
 #     PREREQ_PM => {  }
 #     TEST_REQUIRES => {  }
-#     VERSION_FROM => q[Oracle/XS/HexConverter.pm]
+#     VERSION_FROM => q[Data/HexConverter.pm]
 
 # --- MakeMaker post_initialize section:
 
@@ -57,8 +57,8 @@ VENDORLIBEXP =
 AR_STATIC_ARGS = cr
 DIRFILESEP = /
 DFSEP = $(DIRFILESEP)
-NAME = Oracle::XS::HexConverter
-NAME_SYM = Oracle_XS_HexConverter
+NAME = Data::HexConverter
+NAME_SYM = Data_HexConverter
 VERSION = 0.01
 VERSION_MACRO = VERSION
 VERSION_SYM = 0_01
@@ -151,11 +151,11 @@ MM_REVISION = 77000
 # PARENT_NAME = NAME without BASEEXT and no trailing :: (eg Foo::Bar)
 # DLBASE  = Basename part of dynamic library. May be just equal BASEEXT.
 MAKE = make
-FULLEXT = Oracle/XS/HexConverter
+FULLEXT = Data/HexConverter
 BASEEXT = HexConverter
-PARENT_NAME = Oracle::XS
+PARENT_NAME = Data
 DLBASE = $(BASEEXT)
-VERSION_FROM = Oracle/XS/HexConverter.pm
+VERSION_FROM = Data/HexConverter.pm
 INC = 
 DEFINE = -mssse3
 OBJECT = $(BASEEXT)$(OBJ_EXT)
@@ -175,8 +175,8 @@ MAN3PODS =
 CONFIGDEP = $(PERL_ARCHLIBDEP)$(DFSEP)Config.pm $(PERL_INCDEP)$(DFSEP)config.h
 
 # Where to build things
-INST_LIBDIR      = $(INST_LIB)/Oracle/XS
-INST_ARCHLIBDIR  = $(INST_ARCHLIB)/Oracle/XS
+INST_LIBDIR      = $(INST_LIB)/Data
+INST_ARCHLIBDIR  = $(INST_ARCHLIB)/Data
 
 INST_AUTODIR     = $(INST_LIB)/auto/$(FULLEXT)
 INST_ARCHAUTODIR = $(INST_ARCHLIB)/auto/$(FULLEXT)
@@ -192,7 +192,7 @@ PERL_ARCHIVEDEP    =
 PERL_ARCHIVE_AFTER = 
 
 
-TO_INST_PM = 
+TO_INST_PM = t1.pl
 
 
 # --- MakeMaker platform_constants section:
@@ -269,8 +269,8 @@ CI = ci -u
 RCS_LABEL = rcs -Nv$(VERSION_SYM): -q
 DIST_CP = best
 DIST_DEFAULT = tardist
-DISTNAME = Oracle-XS-HexConverter
-DISTVNAME = Oracle-XS-HexConverter-0.01
+DISTNAME = Data-HexConverter
+DISTVNAME = Data-HexConverter-0.01
 
 
 # --- MakeMaker macro section:
@@ -289,7 +289,7 @@ MPOLLUTE =
 
 # --- MakeMaker const_loadlibs section:
 
-# Oracle::XS::HexConverter might depend on some other libraries:
+# Data::HexConverter might depend on some other libraries:
 # See ExtUtils::Liblist for details
 #
 
@@ -588,7 +588,7 @@ metafile : create_distdir
 	$(NOECHO) $(ECHO) 'meta-spec:' >> META_new.yml
 	$(NOECHO) $(ECHO) '  url: http://module-build.sourceforge.net/META-spec-v1.4.html' >> META_new.yml
 	$(NOECHO) $(ECHO) '  version: '\''1.4'\''' >> META_new.yml
-	$(NOECHO) $(ECHO) 'name: Oracle-XS-HexConverter' >> META_new.yml
+	$(NOECHO) $(ECHO) 'name: Data-HexConverter' >> META_new.yml
 	$(NOECHO) $(ECHO) 'no_index:' >> META_new.yml
 	$(NOECHO) $(ECHO) '  directory:' >> META_new.yml
 	$(NOECHO) $(ECHO) '    - t' >> META_new.yml
@@ -611,7 +611,7 @@ metafile : create_distdir
 	$(NOECHO) $(ECHO) '      "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",' >> META_new.json
 	$(NOECHO) $(ECHO) '      "version" : 2' >> META_new.json
 	$(NOECHO) $(ECHO) '   },' >> META_new.json
-	$(NOECHO) $(ECHO) '   "name" : "Oracle-XS-HexConverter",' >> META_new.json
+	$(NOECHO) $(ECHO) '   "name" : "Data-HexConverter",' >> META_new.json
 	$(NOECHO) $(ECHO) '   "no_index" : {' >> META_new.json
 	$(NOECHO) $(ECHO) '      "directory" : [' >> META_new.json
 	$(NOECHO) $(ECHO) '         "t",' >> META_new.json
@@ -1033,19 +1033,21 @@ testdb_static :: static pure_all $(MAP_TARGET)
 # --- MakeMaker ppd section:
 # Creates a PPD (Perl Package Description) for a binary distribution.
 ppd :
-	$(NOECHO) $(ECHO) '<SOFTPKG NAME="Oracle-XS-HexConverter" VERSION="0.01">' > Oracle-XS-HexConverter.ppd
-	$(NOECHO) $(ECHO) '    <ABSTRACT></ABSTRACT>' >> Oracle-XS-HexConverter.ppd
-	$(NOECHO) $(ECHO) '    <AUTHOR></AUTHOR>' >> Oracle-XS-HexConverter.ppd
-	$(NOECHO) $(ECHO) '    <IMPLEMENTATION>' >> Oracle-XS-HexConverter.ppd
-	$(NOECHO) $(ECHO) '        <ARCHITECTURE NAME="x86_64-linux-5.40" />' >> Oracle-XS-HexConverter.ppd
-	$(NOECHO) $(ECHO) '        <CODEBASE HREF="" />' >> Oracle-XS-HexConverter.ppd
-	$(NOECHO) $(ECHO) '    </IMPLEMENTATION>' >> Oracle-XS-HexConverter.ppd
-	$(NOECHO) $(ECHO) '</SOFTPKG>' >> Oracle-XS-HexConverter.ppd
+	$(NOECHO) $(ECHO) '<SOFTPKG NAME="Data-HexConverter" VERSION="0.01">' > Data-HexConverter.ppd
+	$(NOECHO) $(ECHO) '    <ABSTRACT></ABSTRACT>' >> Data-HexConverter.ppd
+	$(NOECHO) $(ECHO) '    <AUTHOR></AUTHOR>' >> Data-HexConverter.ppd
+	$(NOECHO) $(ECHO) '    <IMPLEMENTATION>' >> Data-HexConverter.ppd
+	$(NOECHO) $(ECHO) '        <ARCHITECTURE NAME="x86_64-linux-5.40" />' >> Data-HexConverter.ppd
+	$(NOECHO) $(ECHO) '        <CODEBASE HREF="" />' >> Data-HexConverter.ppd
+	$(NOECHO) $(ECHO) '    </IMPLEMENTATION>' >> Data-HexConverter.ppd
+	$(NOECHO) $(ECHO) '</SOFTPKG>' >> Data-HexConverter.ppd
 
 
 # --- MakeMaker pm_to_blib section:
 
 pm_to_blib : $(FIRST_MAKEFILE) $(TO_INST_PM)
+	$(NOECHO) $(ABSPERLRUN) -MExtUtils::Install -e 'pm_to_blib({@ARGV}, '\''$(INST_LIB)/auto'\'', q[$(PM_FILTER)], '\''$(PERM_DIR)'\'')' -- \
+	  't1.pl' '$(INST_LIB)/Data/t1.pl' 
 	$(NOECHO) $(TOUCH) pm_to_blib
 
 
