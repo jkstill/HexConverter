@@ -7,8 +7,8 @@
 
 /*
  * This XS module exposes a single function, hex_to_binary(), which
- * converts an even‑length ASCII hex string into a binary octet
- * sequence.  The implementation below is adapted from an OCI‑based
+ * converts an even-length ASCII hex string into a binary octet
+ * sequence.  The implementation below is adapted from an OCI-based
  * function and rewritten to operate on plain C data.  It uses the
  * SSSE3 intrinsics _mm_shuffle_epi8() and friends to process 32
  * characters at a time.  Remaining bytes are handled with a
@@ -22,7 +22,7 @@ static int hex_lookup_initialised = 0;
 /*
  * Determine at runtime whether the current CPU supports the SSSE3
  * instruction set.  These builtins query CPUID without needing
- * special privileges.  When unavailable (non‑gcc/clang compilers),
+ * special privileges.  When unavailable (non-gcc/clang compilers),
  * assume false.
  */
 static int
@@ -64,105 +64,6 @@ init_hex_lookup_table(void)
  * invalid character is found, err_msg will point at a static
  * message; this pointer is never freed.
  */
-static int
-hex_to_binary_ssse3(const unsigned char *hex_data, size_t n,
-                    unsigned char *binary_out, char **err_msg)
-{
-    size_t i;
-    for (i = 0; i + 32 <= n; i += 32) {
-        /* Load 32 input bytes into two 128‑bit registers */
-        __m128i block1 = _mm_loadu_si128((const __m128i *)(hex_data + i));
-        __m128i block2 = _mm_loadu_si128((const __m128i *)(hex_data + i + 16));
-
-        /* Shuffle masks to extract even and odd indices.  The upper
-         * bytes are masked out with 0x80 so that they do not
-         * contribute to the result.  */
-        __m128i idxEven = _mm_setr_epi8(
-            0,  2,  4,  6,  8, 10, 12, 14,
-            (char)0x80,(char)0x80,(char)0x80,(char)0x80,
-            (char)0x80,(char)0x80,(char)0x80,(char)0x80
-        );
-        __m128i idxOdd = _mm_setr_epi8(
-            1,  3,  5,  7,  9, 11, 13, 15,
-            (char)0x80,(char)0x80,(char)0x80,(char)0x80,
-            (char)0x80,(char)0x80,(char)0x80,(char)0x80
-        );
-
-        /* Extract the even and odd characters from both registers */
-        __m128i evens_block1 = _mm_shuffle_epi8(block1, idxEven);
-        __m128i odds_block1  = _mm_shuffle_epi8(block1, idxOdd);
-        __m128i evens_block2 = _mm_shuffle_epi8(block2, idxEven);
-        __m128i odds_block2  = _mm_shuffle_epi8(block2, idxOdd);
-
-        /* Combine even and odd halves; block2 values are shifted
-         * upwards so that each register contains 16 bytes of data. */
-        __m128i evens = _mm_or_si128(evens_block1,
-                                     _mm_slli_si128(evens_block2, 8));
-        __m128i odds  = _mm_or_si128(odds_block1,
-                                     _mm_slli_si128(odds_block2,  8));
-
-        /* Convert ASCII codes to nibble values.  Start by
-         * subtracting '0' from each byte; later we adjust A–F and
-         * a–f ranges.  */
-        __m128i zero = _mm_set1_epi8('0');
-        evens = _mm_sub_epi8(evens, zero);
-        odds  = _mm_sub_epi8(odds,  zero);
-        __m128i chars_evens = _mm_add_epi8(evens, zero);
-        __m128i chars_odds  = _mm_add_epi8(odds,  zero);
-
-        /* Create masks to identify uppercase and lowercase letters
-         * within the ranges A–F and a–f.  */
-        __m128i upperA = _mm_set1_epi8('A' - 1);
-        __m128i upperF = _mm_set1_epi8('F' + 1);
-        __m128i lowerA = _mm_set1_epi8('a' - 1);
-        __m128i lowerF = _mm_set1_epi8('f' + 1);
-        __m128i ucase_mask_e = _mm_and_si128(_mm_cmpgt_epi8(chars_evens, upperA),
-                                             _mm_cmplt_epi8(chars_evens, upperF));
-        __m128i lcase_mask_e = _mm_and_si128(_mm_cmpgt_epi8(chars_evens, lowerA),
-                                             _mm_cmplt_epi8(chars_evens, lowerF));
-        __m128i ucase_mask_o = _mm_and_si128(_mm_cmpgt_epi8(chars_odds,  upperA),
-                                             _mm_cmplt_epi8(chars_odds,  upperF));
-        __m128i lcase_mask_o = _mm_and_si128(_mm_cmpgt_epi8(chars_odds,  lowerA),
-                                             _mm_cmplt_epi8(chars_odds,  lowerF));
-
-        /* Adjust uppercase letters by subtracting 7 and lowercase by
-         * subtracting 39.  */
-        evens = _mm_sub_epi8(evens,
-                             _mm_and_si128(ucase_mask_e,
-                                           _mm_set1_epi8(7)));
-        odds  = _mm_sub_epi8(odds,
-                             _mm_and_si128(ucase_mask_o,
-                                           _mm_set1_epi8(7)));
-        evens = _mm_sub_epi8(evens,
-                             _mm_and_si128(lcase_mask_e,
-                                           _mm_set1_epi8(39)));
-        odds  = _mm_sub_epi8(odds,
-                             _mm_and_si128(lcase_mask_o,
-                                           _mm_set1_epi8(39)));
-
-        /* Merge the high and low nibbles into a single byte */
-        __m128i high_shifted = _mm_slli_epi16(evens, 4);
-        __m128i bytes = _mm_or_si128(high_shifted, odds);
-
-        /* Store the 16 decoded bytes */
-        _mm_storeu_si128((__m128i *)(binary_out + i/2), bytes);
-    }
-
-    /* Process any remaining characters (less than 32) with the
-     * lookup table.  */
-    for (; i < n; i += 2) {
-        unsigned char high = hex_lookup[hex_data[i]];
-        unsigned char low  = hex_lookup[hex_data[i + 1]];
-        if (high == 0xFF || low == 0xFF) {
-            if (err_msg) {
-                *err_msg = "Invalid hex digit";
-            }
-            return -1;
-        }
-        binary_out[i / 2] = (high << 4) | low;
-    }
-    return 0;
-}
 
 MODULE = Data::HexConverter   PACKAGE = Data::HexConverter
 
@@ -191,16 +92,16 @@ hex_to_binary(SV* hex_ref)
         sv_hex = SvRV(hex_ref);
         /* Trigger FETCH on tied values, if necessary */
         SvGETMAGIC(sv_hex);
-        /* If the string is UTF‑8, downgrade it to a byte string.  See perlguts
-         * for more details on SvUTF8 and sv_utf8_downgrade()【817665102442637†L378-L404】.
+        /* If the string is UTF-8, downgrade it to a byte string.  See perlguts
+         * for more details on SvUTF8 and sv_utf8_downgrade().
          */
         if (SvUTF8(sv_hex) && !sv_utf8_downgrade(sv_hex, TRUE)) {
             croak("Input string must contain only ASCII characters and be downgradeable");
         }
         /* Retrieve the raw bytes and length from the SV.  Use SvPVbyte() to
          * obtain a pointer to the internal buffer and its length.  This macro
-         * returns the byte string regardless of the UTF‑8 flag and stores
-         * the length in hex_len【817665102442637†L378-L404】.
+         * returns the byte string regardless of the UTF-8 flag and stores
+         * the length in hex_len.
          */
         hex_str = (unsigned char *)SvPVbyte(sv_hex, hex_len);
         if (hex_len == 0) {
@@ -218,28 +119,79 @@ hex_to_binary(SV* hex_ref)
         }
         has_ssse3 = cpu_has_ssse3();
         if (has_ssse3) {
-            /* Use SSSE3 helper; if it returns non‑zero we croak */
-            rc = hex_to_binary_ssse3(hex_str, (size_t)hex_len, binary_out, &err_msg);
-            if (rc != 0) {
-                free(binary_out);
-                croak("%s", err_msg);
+            /* Perform SSSE3 conversion inline.  Process 32 input characters at
+             * a time (16 output bytes per iteration).  idxEven and idxOdd
+             * shuffle masks are defined once outside the loop.  */
+            __m128i idxEven = _mm_setr_epi8(
+                0,  2,  4,  6,  8, 10, 12, 14,
+                (char)0x80,(char)0x80,(char)0x80,(char)0x80,
+                (char)0x80,(char)0x80,(char)0x80,(char)0x80
+            );
+            __m128i idxOdd = _mm_setr_epi8(
+                1,  3,  5,  7,  9, 11, 13, 15,
+                (char)0x80,(char)0x80,(char)0x80,(char)0x80,
+                (char)0x80,(char)0x80,(char)0x80,(char)0x80
+            );
+            for (i = 0; i + 32 <= (size_t)hex_len; i += 32) {
+                __m128i block1 = _mm_loadu_si128((const __m128i *)(hex_str + i));
+                __m128i block2 = _mm_loadu_si128((const __m128i *)(hex_str + i + 16));
+                __m128i evens_block1 = _mm_shuffle_epi8(block1, idxEven);
+                __m128i odds_block1  = _mm_shuffle_epi8(block1, idxOdd);
+                __m128i evens_block2 = _mm_shuffle_epi8(block2, idxEven);
+                __m128i odds_block2  = _mm_shuffle_epi8(block2, idxOdd);
+                __m128i evens = _mm_or_si128(evens_block1,
+                                             _mm_slli_si128(evens_block2, 8));
+                __m128i odds  = _mm_or_si128(odds_block1,
+                                             _mm_slli_si128(odds_block2,  8));
+                __m128i zero = _mm_set1_epi8('0');
+                evens = _mm_sub_epi8(evens, zero);
+                odds  = _mm_sub_epi8(odds,  zero);
+                __m128i chars_evens = _mm_add_epi8(evens, zero);
+                __m128i chars_odds  = _mm_add_epi8(odds,  zero);
+                __m128i upperA = _mm_set1_epi8('A' - 1);
+                __m128i upperF = _mm_set1_epi8('F' + 1);
+                __m128i lowerA = _mm_set1_epi8('a' - 1);
+                __m128i lowerF = _mm_set1_epi8('f' + 1);
+                __m128i ucase_mask_e = _mm_and_si128(_mm_cmpgt_epi8(chars_evens, upperA),
+                                                     _mm_cmplt_epi8(chars_evens, upperF));
+                __m128i lcase_mask_e = _mm_and_si128(_mm_cmpgt_epi8(chars_evens, lowerA),
+                                                     _mm_cmplt_epi8(chars_evens, lowerF));
+                __m128i ucase_mask_o = _mm_and_si128(_mm_cmpgt_epi8(chars_odds,  upperA),
+                                                     _mm_cmplt_epi8(chars_odds,  upperF));
+                __m128i lcase_mask_o = _mm_and_si128(_mm_cmpgt_epi8(chars_odds,  lowerA),
+                                                     _mm_cmplt_epi8(chars_odds,  lowerF));
+                evens = _mm_sub_epi8(evens,
+                                     _mm_and_si128(ucase_mask_e,
+                                                   _mm_set1_epi8(7)));
+                odds  = _mm_sub_epi8(odds,
+                                     _mm_and_si128(ucase_mask_o,
+                                                   _mm_set1_epi8(7)));
+                evens = _mm_sub_epi8(evens,
+                                     _mm_and_si128(lcase_mask_e,
+                                                   _mm_set1_epi8(39)));
+                odds  = _mm_sub_epi8(odds,
+                                     _mm_and_si128(lcase_mask_o,
+                                                   _mm_set1_epi8(39)));
+                __m128i high_shifted = _mm_slli_epi16(evens, 4);
+                __m128i bytes = _mm_or_si128(high_shifted, odds);
+                _mm_storeu_si128((__m128i *)(binary_out + i/2), bytes);
             }
         } else {
-            /* Fallback: issue warning and process bytes using lookup table */
+            /* SSSE3 not available: warn and start scalar conversion at i=0 */
             warn("Data::HexConverter: SSSE3 not supported, falling back to scalar implementation\n");
-            for (i = 0; i < (size_t)hex_len; i += 2) {
-                unsigned char high = hex_lookup[hex_str[i]];
-                unsigned char low  = hex_lookup[hex_str[i + 1]];
-                if (high == 0xFF || low == 0xFF) {
-                    free(binary_out);
-                    croak("Invalid hex digit");
-                }
-                binary_out[i / 2] = (high << 4) | low;
+            i = 0;
+        }
+        /* Convert any remaining bytes or the entire buffer if no SSSE3 support */
+        for (; i < (size_t)hex_len; i += 2) {
+            unsigned char high = hex_lookup[hex_str[i]];
+            unsigned char low  = hex_lookup[hex_str[i + 1]];
+            if (high == 0xFF || low == 0xFF) {
+                free(binary_out);
+                croak("Invalid hex digit");
             }
+            binary_out[i / 2] = (high << 4) | low;
         }
         {
-            /* Create a new Perl scalar from the binary buffer.  Use
-             * newSVpvn() to specify the length so that NUL bytes are preserved【762007431098504†L165-L190】. */
             SV *result = newSVpvn((const char *)binary_out, hex_len/2);
             free(binary_out);
             XPUSHs(sv_2mortal(result));
@@ -262,7 +214,7 @@ binary_to_hex(SV* bin_ref)
         }
         sv_bin = SvRV(bin_ref);
         SvGETMAGIC(sv_bin);
-        /* Ensure a bytestring, not UTF‑8 */
+        /* Ensure a bytestring, not UTF-8 */
         if (SvUTF8(sv_bin) && !sv_utf8_downgrade(sv_bin, TRUE)) {
             croak("Binary data must be a bytestring");
         }
