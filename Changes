@@ -3,3 +3,11 @@ Revision history for Data-HexConverter
 0.01    2025-07-28 15:00:00
         First version of Data::HexConverter
 
+0.02    2025-07-29
+        corrected module location
+
+0.03    2025-07-30
+        fixed error in POD, added test for 1M string
+
+0.04 2025-07-31
+        removed Data/HexConverter.pm from MANIFEST.  The correct entry is already in the file.
