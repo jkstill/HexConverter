@@ -15,15 +15,70 @@ The `pack()` function was previously used for this, but  it is no nearly as fast
 Data::HexConverter is about 36x faster than `pack()` for this purpose.
 
 
+## CPU Features
+
+Determine if you CPU supports AVX 512 instructions:
+
+On a local VM:
+
+```bash
+  $ gcc -O3 -Wall -Wextra -mavx512bw -mavx512vl -o probe_isa probe_isa.c
+
+  $  ./probe_isa
+  FEATURES: sse2 avx avx2
+```
+
+On a local server that supports AVX 512:
+
+```bash
+  $ gcc -O3 -Wall -Wextra -mavx512bw -mavx512vl -o probe_isa probe_isa.c
+
+  $ ./probe_isa
+  FEATURES: sse2 avx avx2 avx512bw avx512vl
+```
+
 ## Installation
 
 To install this module, run the following commands:
+
+If AVX 512 is NOT support:
 
 ```text
 	perl Makefile.PL
 	make
 	make test
 	make install
+```
+
+If AVX 512 IS supported:
+
+```text
+    HEXSIMD_ENABLE_AVX512=1 perl Makefile.PL
+    make
+    make test
+    make install
+```
+
+## Verify Implementation Used
+
+Local VM without AVX 512:
+
+```bash
+  $  PERL5LIB=./lib LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./blib/arch/auto/Data/HexConverter perl isa.pl
+  Hex to Binary Implementation:
+  avx2
+  Binary to Hex Implementation:
+  avx2
+```
+
+Local Server with AVX 512:
+
+```bash
+  $  PERL5LIB=./lib LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./blib/arch/auto/Data/HexConverter perl isa.pl
+  Hex to Binary Implementation:
+  avx512bw
+  Binary to Hex Implementation:
+  avx512bw
 ```
 
 ## Support and Documentation
@@ -52,39 +107,71 @@ These are simple examples, taken directly from the test code.
 
 These can be used to encode and decode much larger objects.
 
-### Example 1: Converting Binary to Hex
+### Converting Binary to Hex and Back to Hex
+
+demo.pl:
 
 ```perl
-
 use strict;
 use warnings;
-use Test::More;
 
-use Data::HexConverter qw(binary_to_hex);
+use Data::HexConverter;
 
-my $bin = "Hello";
-my $hex = Data::HexConverter::binary_to_hex(\$bin);
+print "\nVersion: ", $Data::HexConverter::VERSION, "\n";
 
-$bin = "JKL";
-$hex = Data::HexConverter::binary_to_hex(\$bin);
+my $hexToBinImplementation   = hex_to_binary_impl();
+my $binToHexImplementation   = binary_to_hex_impl();
 
-$bin = pack("C*", 0x00, 0xFF, 0x7F, 0x80);
-$hex = Data::HexConverter::binary_to_hex(\$bin);
+print "Hex to Binary Implementation:\n$hexToBinImplementation\n";
+print "Binary to Hex Implementation:\n$binToHexImplementation\n";
+
+my ($hex,$back,$data);
+
+$data = "Hello";
+print "\nData: $data\n";
+$hex = binary_to_hex(\$data);
+print "Hex: $hex\n";
+$back = hex_to_binary(\$hex);
+print "Back to Data: $back\n";
+
+$data = "JKL";
+print "\nData: $data\n";
+$hex = binary_to_hex(\$data);
+print "Hex: $hex\n";
+$back = hex_to_binary(\$hex);
+print "Back to Data: $back\n";
+
+$data = pack("C*", 0x00, 0xFF, 0x7F, 0x80);
+print "\nData: Binary data (non-printable)\n";
+$hex = binary_to_hex(\$data);
+print "Hex: $hex\n";
+$back = hex_to_binary(\$hex);
+print "Back to Data: unprintable binary data\n";
 
 ```
 
-### Example 2: Converting Hex to Binary
+Run demo.pl:
 
-```perl
+```bash
+$  PERL5LIB=./lib LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./blib/arch/auto/Data/HexConverter perl demo.pl
 
-use strict;
-use warnings;
-use Data::HexConverter qw(hex_to_binary);
+Version: 0.5
+Hex to Binary Implementation:
+avx2
+Binary to Hex Implementation:
+avx2
 
-my $hex = "48656c6c6f";       # "Hello" in hex
-my $bin = hex_to_binary(\$hex);
+Data: Hello
+Hex: 48656C6C6F
+Back to Data: Hello
 
-$hex = "4a4B4c";            # mixed case: "JKL"
-$bin = hex_to_binary(\$hex);
+Data: JKL
+Hex: 4A4B4C
+Back to Data: JKL
+
+Data: Binary data (non-printable)
+Hex: 00FF7F80
+Back to Data: unprintable binary data
+
 ```
 
