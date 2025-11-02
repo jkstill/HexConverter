@@ -34,7 +34,12 @@ Data::HexConverter - Fast hex to binary and binary to hex using SIMD aware C cod
 =head1 DESCRIPTION
 
 This module calls a C library that picks the best implementation for the current CPU at runtime.
-On an AVX512 host it will use AVX512. on AVX2 it will use AVX2. on older hosts it will use SSE2 or scalar.
+
+On an AVX512 host it will use AVX512. 
+
+On most other hosts AVX2 will be used. 
+
+If the host is really old (unlikekly) will use SSE2 or scalar (even more unlikely).
 
 The Perl API takes references to scalars, because the strings can be large.
 
@@ -62,4 +67,5 @@ Jared Still
 
 =head1 LICENSE
 
-Same as Perl 5.
+MIT License.
+
