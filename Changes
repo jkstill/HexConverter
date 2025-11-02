@@ -12,7 +12,7 @@ Revision history for Data-HexConverter
 0.04 2025-07-31
     - removed Data/HexConverter.pm from MANIFEST.  The correct entry is already in the file.
 
-0.05 2025-11-02
+0.51 2025-11-02
     - Add XS wrapper over SIMD hex<->bin core (src/hexsimd.c)
     - Runtime CPU dispatch (scalar/SSE2/AVX2/AVX-512 when built)
     - Perl API now uses scalar refs:
@@ -20,4 +20,7 @@ Revision history for Data-HexConverter
         binary_to_hex(\$bin)
     - Proper handling of empty strings and odd-length hex (croaks)
     - Build works on AVX-512 and non-AVX-512 x86_64 (OL8 tested)
+	 - added C demo instructions
+	 - added src/ files
+	 - changed version to 0.51 
 

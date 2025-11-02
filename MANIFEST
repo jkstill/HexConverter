@@ -11,3 +11,5 @@ t/00-load.t
 t/binary_to_hex.t
 t/hex_to_binary.t
 xt/boilerplate.t
+src/hexsimd.h
+src/hexsimd.c
