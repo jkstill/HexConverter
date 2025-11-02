@@ -2,14 +2,22 @@ package Data::HexConverter;
 use strict;
 use warnings;
 use XSLoader;
+use Exporter qw(import);
 
 our $VERSION = '0.5';
 
+use XSLoader;
 XSLoader::load(__PACKAGE__, $VERSION);
 
-# We do not export by default. callers should use fully qualified names.
-# use Data::HexConverter;
-# my $bin = Data::HexConverter::hex_to_binary(\$hex);
+our @ISA = qw(Exporter);
+our @EXPORT = qw(
+	hex_to_binary
+	binary_to_hex
+	hex_to_binary_impl
+	binary_to_hex_impl
+);
+
+our @EXPORT_OK = ();
 
 1;
 
