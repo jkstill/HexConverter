@@ -11,3 +11,6 @@ Revision history for Data-HexConverter
 
 0.04 2025-07-31
         removed Data/HexConverter.pm from MANIFEST.  The correct entry is already in the file.
+
+0.05 2025-11-02
+        rewrite to allow use of avx 512 instructions on machines that are capable
