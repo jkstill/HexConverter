@@ -81,6 +81,22 @@ Local Server with AVX 512:
   avx512bw
 ```
 
+## C Demo Programs
+
+The `demo` program can be created from the hexsimd.c source code.
+
+```bash
+    $ make -f make-dist.mk demo
+    $ ./demo
+```
+
+The program `demo-2` can created via gcc:
+
+```bash
+    $ gcc -O3 -Wall -Wextra -mavx512bw -mavx512vl -L ./src -l:hexsimd.o -o demo-2 demo-2.c
+    $ ./demo-2
+```
+
 ## Support and Documentation
 
 After installing, you can find documentation for this module with the perldoc command.

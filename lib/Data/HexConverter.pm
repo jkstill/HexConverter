@@ -4,7 +4,7 @@ use warnings;
 use XSLoader;
 use Exporter qw(import);
 
-our $VERSION = '0.05';
+our $VERSION = '0.6';
 
 use XSLoader;
 XSLoader::load(__PACKAGE__, $VERSION);
@@ -47,7 +47,7 @@ On an AVX512 host it will use AVX512.
 
 On most other hosts AVX2 will be used. 
 
-If the host is really old (unlikekly) will use SSE2 or scalar (even more unlikely).
+If the host is really old (unlikely) will use SSE2 or scalar (even more unlikely).
 
 The Perl API takes references to scalars, because the strings can be large.
 
