@@ -22,6 +22,10 @@ $(LIBNAME).so.$(SOVERSION).$(VERSION): src/hexsimd.o
 src/hexsimd.o: src/hexsimd.c src/hexsimd.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
+demo: all
+	$(CC) -DTEST_HEX -o demo src/hexsimd.c -Isrc/ $(CFLAGS)
+
+
 install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/lib
 	mkdir -p $(DESTDIR)$(PREFIX)/include
@@ -31,6 +35,6 @@ install: all
 	install -m 644 src/hexsimd.h $(DESTDIR)$(PREFIX)/include/
 
 clean:
-	rm -f src/*.o $(LIBNAME).so*
+	rm -f src/*.o $(LIBNAME).so* demo demo-2
 
 .PHONY: all install clean

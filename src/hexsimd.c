@@ -1,6 +1,7 @@
 // hexsimd.c
 // SIMD-accelerated hex<->bin with runtime dispatch.
 // Build modes controlled by Makefile (UNIVERSAL vs NATIVE).
+// make -f make-dist.mk demo
 
 #include "hexsimd.h"
 #include <stdlib.h>   // getenv
