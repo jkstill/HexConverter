@@ -27,3 +27,6 @@ Revision history for Data-HexConverter
 0.6 2025-11-02
     - fixed a typo in HexConverter.pm
 	 - additional instructions for C demo programs.
+
+0.6 2025-11-02
+    - added benchmark.pl and testdata.txt

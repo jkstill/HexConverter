@@ -191,3 +191,26 @@ Back to Data: unprintable binary data
 
 ```
 
+## Benchmark
+
+AVX2 Implementation on a local VM:
+
+```text
+$ perl benchmark.pl tesdata.txt
+Method: avx2
+Elapsed time: 0.1683 seconds
+Average time per conversion: 0.000168 seconds
+Size of binary data: 1048576 bytes
+```
+
+AVX512 Implementation on a local server:
+
+```text
+$ perl benchmark.pl tesdata.txt
+Method: avx512bw
+Elapsed time: 0.0945 seconds
+Average time per conversion: 0.000094 seconds
+Size of binary data: 1048576 bytes
+```
+
+
