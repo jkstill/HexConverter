@@ -12,7 +12,7 @@ $ccflags .= ' -O3 -Wall -Wextra -fPIC -DHEXSIMD_BUILD';
 
 if ($is_x86) {
     # generic x86-64, keep generic code safe. AVX is enabled per-function in src/hexsimd.c
-    $ccflags .= ' -march=x86-64 -mno-avx -mno-avx2 -mno-avx512f';
+    $ccflags .= ' -march=x86-64 -mno-avx -mno-avx2 -mno-avx512f -mavx512bw -mavx512vl -mavx512dq';
 }
 
 # env-controlled AVX512
