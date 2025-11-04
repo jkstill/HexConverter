@@ -6,8 +6,9 @@ SOVERSION = 1
 
 CC ?= gcc
 CFLAGS ?= -O3 -Wall -Wextra -fPIC -fvisibility=hidden \
-          -march=x86-64 -mno-avx -mno-avx2 -mno-avx512f \
-          -DHEXSIMD_BUILD
+	-march=x86-64 -mno-avx -mno-avx2 \
+	-mno-avx512f -mavx512bw -mavx512vl -mavx512dq \
+	-DHEXSIMD_BUILD
 LDFLAGS ?=
 
 all: $(LIBNAME).so
