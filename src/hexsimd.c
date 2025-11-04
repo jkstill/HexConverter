@@ -17,7 +17,7 @@
 #endif
 
 /* decide once. at compile time. whether AVX512 code exists in this file */
-#if (defined(__AVX512BW__) && defined(__AVX512VL__)) || defined(HEXSIMD_ENABLE_AVX512)
+#ifdef HEXSIMD_ENABLE_AVX512
 #  define HEXSIMD_HAVE_AVX512 1
 #else
 #  define HEXSIMD_HAVE_AVX512 0
