@@ -14,9 +14,23 @@ make -f make-dist.mk src/hexsimd.o
 gcc -g -O3 -Wall -Wextra src/hexsimd.o -o benchmark benchmark.c
 gcc -g -O3 -Wall -Wextra src/hexsimd.o -o benchmark-multiline benchmark-multiline.c 
 
-[[ -f ./testdata.hex ]] || ./create-random-testdata.sh
+[[ -f ./testdata.hex ]] || {
+	echo
+	echo "Creating testdata..."
+	echo
+	./create-random-testdata.sh
+}
 
-#export DEBUG_IMPL=1 HEXSIMD_FORCE=avx512 
+echo
+echo "Running benchmarks..."
+echo
+
+echo
+echo "Single-line benchmark:"
+echo
 ./benchmark testdata.txt
+echo
+echo "Multi-line benchmark:"
+echo
 ./benchmark-multiline testdata.hex
 
