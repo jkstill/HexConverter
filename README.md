@@ -41,22 +41,13 @@ On a local server that supports AVX 512:
 
 To install this module, run the following commands:
 
-If AVX 512 is NOT support:
+AVX 512 are automatically enabled if supported by the CPU.
 
 ```text
 	perl Makefile.PL
 	make
 	make test
 	make install
-```
-
-If AVX 512 IS supported:
-
-```text
-    HEXSIMD_ENABLE_AVX512=1 perl Makefile.PL
-    make
-    make test
-    make install
 ```
 
 ## Verify Implementation Used
@@ -95,6 +86,73 @@ The program `demo-2` can created via gcc:
 ```bash
     $ gcc -O3 -Wall -Wextra -mavx512bw -mavx512vl -L ./src -l:hexsimd.o -o demo-2 demo-2.c
     $ ./demo-2
+```
+
+## Benchmarking Demo Programs
+
+There are some basic benchmarking demo programs available
+
+### C
+
+Run the script `benchmark-build.sh` to build and run the C benchmark programs.
+
+The first time it runs it will build the benchmark programs and a data files `testdat.hex`, which is ~ 2GGB in size.
+
+```bash
+$  ./benchmark-build.sh
+make: *** No rule to make target 'clean'.  Stop.
+rm -f src/*.o libhexsimd.so* demo demo-2
+cc -O3 -Wall -Wextra -fPIC -fvisibility=hidden -march=x86-64 -mno-avx -mno-avx2 -DHEXSIMD_BUILD -c src/hexsimd.c -o src/hexsimd.o
+
+Creating testdata...
+
+Added 964037 bytes to testdata.hex
+Added 1870469 bytes to testdata.hex
+Added 1083589 bytes to testdata.hex
+...
+
+Running benchmarks...
+
+Single-line benchmark:
+
+ISA: sse2=1 avx=1 avx2=1 avx512bw=0 avx512vl=0
+file size: 2097153 bytes, bytes read: 2097153
+avx2
+OK
+optimized lookup avx2 took 0.129217 seconds for 1000 tests, avg: 0.000129217
+g_hex2bin_name: avx2
+
+Multi-line benchmark:
+
+ISA: sse2=1 avx=1 avx2=1 avx512bw=0 avx512vl=0
+g_hex2bin_name: avx2
+Processed 1000 lines from testdata.hex
+Total hex->bin time: 0.137120 seconds
+Average per line: 0.000137120 seconds
+```
+
+### Perl
+
+It is assumed that `testdat.hex` has already been created by running the C benchmark build script.
+
+Single-line benchmark:
+
+```bash
+$  perl benchmark.pl
+Method: avx2
+Elapsed time: 0.1704 seconds
+Average time per conversion: 0.000170 seconds
+Size of binary data: 1048576 bytes
+```
+
+Multi-line benchmark:
+
+```bash
+$  perl benchmark-multiline.pl
+Method: avx2
+Elapsed time: 0.5894 seconds
+Average time per conversion: 0.000589 seconds
+Size of binary data: 2042629 bytes
 ```
 
 ## Support and Documentation

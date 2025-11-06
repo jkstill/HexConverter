@@ -5,10 +5,15 @@ VERSION = 1.0.0
 SOVERSION = 1
 
 CC ?= gcc
+
+   # use these flags to enable specific AVX-512 subsets
+	#-mno-avx512f -mavx512bw -mavx512vl -mavx512dq \
+	#-DHEXSIMD_ENABLE_AVX512
+
 CFLAGS ?= -O3 -Wall -Wextra -fPIC -fvisibility=hidden \
 	-march=x86-64 -mno-avx -mno-avx2 \
-	-mno-avx512f -mavx512bw -mavx512vl -mavx512dq \
-	-DHEXSIMD_BUILD
+	-DHEXSIMD_BUILD 
+
 LDFLAGS ?=
 
 all: $(LIBNAME).so
@@ -25,7 +30,6 @@ src/hexsimd.o: src/hexsimd.c src/hexsimd.h
 
 demo: all
 	$(CC) -DTEST_HEX -o demo src/hexsimd.c -Isrc/ $(CFLAGS)
-
 
 install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/lib
